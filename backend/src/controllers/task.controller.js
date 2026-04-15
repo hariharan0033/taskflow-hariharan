@@ -1,10 +1,13 @@
 const prisma = require('../utils/prisma');
+const { parsePagination, paginationMeta } = require('../utils/pagination');
 
 const VALID_STATUSES = ['todo', 'in_progress', 'done'];
 const VALID_PRIORITIES = ['low', 'medium', 'high'];
 
 async function getTasks(req, res) {
   const { status, assignee } = req.query;
+  const { page, limit, skip, error } = parsePagination(req.query);
+  if (error) return res.status(400).json({ error: 'validation failed', fields: { pagination: error } });
 
   const project = await prisma.project.findUnique({ where: { id: req.params.id } });
   if (!project) return res.status(404).json({ error: 'not found' });
@@ -20,13 +23,18 @@ async function getTasks(req, res) {
     where.assignee_id = assignee;
   }
 
-  const tasks = await prisma.task.findMany({
-    where,
-    include: { assignee: { select: { id: true, name: true, email: true } } },
-    orderBy: { created_at: 'desc' },
-  });
+  const [total, tasks] = await prisma.$transaction([
+    prisma.task.count({ where }),
+    prisma.task.findMany({
+      where,
+      include: { assignee: { select: { id: true, name: true, email: true } } },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: limit,
+    }),
+  ]);
 
-  return res.json(tasks);
+  return res.json({ data: tasks, pagination: paginationMeta(total, page, limit) });
 }
 
 async function createTask(req, res) {
