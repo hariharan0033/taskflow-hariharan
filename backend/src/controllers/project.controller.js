@@ -44,13 +44,13 @@ async function getProject(req, res) {
     },
   });
 
-  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (!project) return res.status(404).json({ error: 'not found' });
   return res.json(project);
 }
 
 async function updateProject(req, res) {
   const project = await prisma.project.findUnique({ where: { id: req.params.id } });
-  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (!project) return res.status(404).json({ error: 'not found' });
   if (project.owner_id !== req.user.id) return res.status(403).json({ error: 'forbidden' });
 
   const { name, description } = req.body;
@@ -77,7 +77,7 @@ async function updateProject(req, res) {
 
 async function deleteProject(req, res) {
   const project = await prisma.project.findUnique({ where: { id: req.params.id } });
-  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (!project) return res.status(404).json({ error: 'not found' });
   if (project.owner_id !== req.user.id) return res.status(403).json({ error: 'forbidden' });
 
   await prisma.project.delete({ where: { id: req.params.id } });
@@ -86,7 +86,7 @@ async function deleteProject(req, res) {
 
 async function getProjectStats(req, res) {
   const project = await prisma.project.findUnique({ where: { id: req.params.id } });
-  if (!project) return res.status(404).json({ error: 'Project not found' });
+  if (!project) return res.status(404).json({ error: 'not found' });
 
   const tasks = await prisma.task.findMany({
     where: { project_id: req.params.id },
