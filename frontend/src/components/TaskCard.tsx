@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Task, TaskStatus } from '../types';
+import type { Task, TaskStatus, TaskPriority } from '../types';
 import { useTaskStore } from '../store/taskStore';
 import EditTaskModal from './EditTaskModal';
 
@@ -13,10 +13,10 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   done: 'Done',
 };
 
-const NEXT_STATUS: Record<TaskStatus, TaskStatus> = {
-  todo: 'in_progress',
-  in_progress: 'done',
-  done: 'todo',
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
 };
 
 export default function TaskCard({ task }: Props) {
@@ -27,13 +27,23 @@ export default function TaskCard({ task }: Props) {
   const [statusError, setStatusError] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
-  const handleStatusClick = async () => {
+  const handleStatusChange = async (newStatus: TaskStatus) => {
+    if (newStatus === task.status) return;
     setStatusError('');
-    const next = NEXT_STATUS[task.status];
     try {
-      await updateTaskOptimistic(task.id, { status: next });
+      await updateTaskOptimistic(task.id, { status: newStatus });
     } catch {
       setStatusError('Failed to update status — reverted.');
+      setTimeout(() => setStatusError(''), 3000);
+    }
+  };
+
+  const handlePriorityChange = async (newPriority: TaskPriority) => {
+    if (newPriority === task.priority) return;
+    try {
+      await updateTaskOptimistic(task.id, { priority: newPriority });
+    } catch {
+      setStatusError('Failed to update priority — reverted.');
       setTimeout(() => setStatusError(''), 3000);
     }
   };
@@ -63,15 +73,30 @@ export default function TaskCard({ task }: Props) {
             <div className="task-card__desc">{task.description}</div>
           )}
           <div className="task-card__meta">
-            <button
-              className={`badge badge--${task.status}`}
-              onClick={handleStatusClick}
-              title="Click to advance status"
-              style={{ border: 'none', cursor: 'pointer' }}
+            {/* Status dropdown */}
+            <select
+              className={`task-select task-select--${task.status}`}
+              value={task.status}
+              onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
+              title="Change status"
             >
-              {STATUS_LABELS[task.status]}
-            </button>
-            <span className={`badge badge--${task.priority}`}>{task.priority}</span>
+              {(Object.keys(STATUS_LABELS) as TaskStatus[]).map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+
+            {/* Priority dropdown */}
+            <select
+              className={`task-select task-select--priority task-select--${task.priority}`}
+              value={task.priority}
+              onChange={(e) => handlePriorityChange(e.target.value as TaskPriority)}
+              title="Change priority"
+            >
+              {(Object.keys(PRIORITY_LABELS) as TaskPriority[]).map((p) => (
+                <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
+              ))}
+            </select>
+
             {task.assignee && (
               <span className="task-assignee">@{task.assignee.name}</span>
             )}
@@ -97,3 +122,4 @@ export default function TaskCard({ task }: Props) {
     </>
   );
 }
+
