@@ -336,3 +336,104 @@ button { cursor: pointer; font-family: inherit; }
 }
 .pagination-info { font-size: 0.875rem; color: var(--text-secondary); }
 .count-badge { font-size: 0.85rem; color: var(--text-secondary); font-weight: normal; }
+
+/* ── View toggle (List / Board) ── */
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.view-toggle__btn {
+  background: none;
+  border: none;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.view-toggle__btn:hover { background: var(--surface-2); }
+.view-toggle__btn--active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Kanban board ── */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .kanban-board { grid-template-columns: 1fr; }
+}
+
+.kanban-col {
+  background: var(--surface-2);
+  border-radius: 12px;
+  border: 2px solid transparent;
+  min-height: 200px;
+  transition: border-color 0.15s;
+}
+.kanban-col--over { border-color: var(--accent); }
+
+.kanban-col__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.kanban-col__count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--border);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+.kanban-col__body {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 80px;
+}
+.kanban-empty {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 1.5rem 0;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+}
+
+/* ── Drag wrapper ── */
+.drag-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+.drag-wrapper__card { flex: 1; min-width: 0; }
+.drag-handle {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  padding: 0.6rem 0.2rem;
+  cursor: grab;
+  line-height: 1;
+  touch-action: none;
+}
+.drag-handle:hover { color: var(--accent); }
+.drag-handle:active { cursor: grabbing; }
+
+/* ── Drag overlay (ghost card while dragging) ── */
+.drag-overlay {
+  box-shadow: 0 8px 24px var(--shadow-md);
+  border-radius: 12px;
+  rotate: 2deg;
+}
