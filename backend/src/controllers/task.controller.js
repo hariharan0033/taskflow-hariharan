@@ -75,6 +75,7 @@ async function createTask(req, res) {
       priority: priority || 'medium',
       project_id: req.params.id,
       assignee_id: assignee_id || null,
+      creator_id: req.user.id,
       due_date: due_date ? new Date(due_date) : null,
     },
     include: { assignee: { select: { id: true, name: true, email: true } } },
@@ -141,7 +142,9 @@ async function deleteTask(req, res) {
   if (!task) return res.status(404).json({ error: 'not found' });
 
   const isProjectOwner = task.project.owner_id === req.user.id;
-  if (!isProjectOwner) {
+  const isCreator = task.creator_id === req.user.id;
+
+  if (!isProjectOwner && !isCreator) {
     return res.status(403).json({ error: 'forbidden' });
   }
 
