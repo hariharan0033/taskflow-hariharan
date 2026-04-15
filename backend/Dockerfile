@@ -19,6 +19,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Prisma requires OpenSSL to run migrations — alpine doesn't include it by default
+RUN apk add --no-cache openssl
+
 # Copy built artifacts from builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
