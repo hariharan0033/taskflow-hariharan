@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import TaskCard from '../components/TaskCard';
+import KanbanBoard from '../components/KanbanBoard';
 import CreateTaskModal from '../components/CreateTaskModal';
 import Spinner from '../components/Spinner';
 import { useTaskStore } from '../store/taskStore';
@@ -9,6 +10,8 @@ import { getProject } from '../api/projects';
 import type { Project, TaskStatus } from '../types';
 
 const TASK_PAGE_SIZE = 10;
+const BOARD_FETCH_LIMIT = 100; // fetch all tasks for board view
+type ViewMode = 'list' | 'board';
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +21,7 @@ export default function ProjectDetailPage() {
   const [projectLoading, setProjectLoading] = useState(true);
   const [projectError, setProjectError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [view, setView] = useState<ViewMode>('list');
 
   const [filterStatus, setFilterStatus] = useState<TaskStatus | ''>('');
   const [filterAssignee, setFilterAssignee] = useState('');
@@ -34,13 +38,18 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetchTasks(id, {
-      status: filterStatus || undefined,
-      assignee: filterAssignee || undefined,
-      page,
-      limit: TASK_PAGE_SIZE,
-    });
-  }, [id, filterStatus, filterAssignee, page]);
+    if (view === 'board') {
+      // Board mode: fetch all tasks (no pagination, no status filter)
+      fetchTasks(id, { limit: BOARD_FETCH_LIMIT, page: 1 });
+    } else {
+      fetchTasks(id, {
+        status: filterStatus || undefined,
+        assignee: filterAssignee || undefined,
+        page,
+        limit: TASK_PAGE_SIZE,
+      });
+    }
+  }, [id, filterStatus, filterAssignee, page, view]);
 
   // Reset to page 1 when filters change
   const handleFilterChange = (newStatus: TaskStatus | '', newAssignee: string) => {
@@ -90,15 +99,33 @@ export default function ProjectDetailPage() {
         )}
 
         <div className="page-header">
-          <h1 style={{ fontSize: '1.1rem', color: '#64748b' }}>
+          <h1 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)' }}>
             Tasks {pagination && <span className="count-badge">({pagination.total})</span>}
           </h1>
-          <button className="btn btn--primary" onClick={() => setShowModal(true)}>
-            + New Task
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {/* View toggle */}
+            <div className="view-toggle">
+              <button
+                className={`view-toggle__btn${view === 'list' ? ' view-toggle__btn--active' : ''}`}
+                onClick={() => setView('list')}
+              >
+                ☰ List
+              </button>
+              <button
+                className={`view-toggle__btn${view === 'board' ? ' view-toggle__btn--active' : ''}`}
+                onClick={() => setView('board')}
+              >
+                ⊞ Board
+              </button>
+            </div>
+            <button className="btn btn--primary" onClick={() => setShowModal(true)}>
+              + New Task
+            </button>
+          </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters (list mode only) */}
+        {view === 'list' && (
         <div className="filters">
           <select
             value={filterStatus}
@@ -131,6 +158,7 @@ export default function ProjectDetailPage() {
             </button>
           )}
         </div>
+        )}
 
         {loading && <Spinner />}
 
@@ -150,7 +178,11 @@ export default function ProjectDetailPage() {
           </div>
         )}
 
-        {!loading && !error && tasks.length > 0 && (
+        {!loading && !error && tasks.length > 0 && view === 'board' && (
+          <KanbanBoard tasks={tasks} />
+        )}
+
+        {!loading && !error && tasks.length > 0 && view === 'list' && (
           <>
             <div className="task-list">
               {tasks.map((t) => <TaskCard key={t.id} task={t} />)}
@@ -182,7 +214,18 @@ export default function ProjectDetailPage() {
       </div>
 
       {showModal && id && (
-        <CreateTaskModal projectId={id} onClose={() => { setShowModal(false); setPage(1); fetchTasks(id, { page: 1, limit: TASK_PAGE_SIZE }); }} />
+        <CreateTaskModal
+          projectId={id}
+          onClose={() => {
+            setShowModal(false);
+            if (view === 'board') {
+              fetchTasks(id, { limit: BOARD_FETCH_LIMIT, page: 1 });
+            } else {
+              setPage(1);
+              fetchTasks(id, { page: 1, limit: TASK_PAGE_SIZE });
+            }
+          }}
+        />
       )}
     </>
   );
