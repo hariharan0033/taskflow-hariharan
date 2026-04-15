@@ -257,3 +257,6 @@ button { cursor: pointer; font-family: inherit; }
   .task-card__actions { align-self: flex-end; }
   .modal { padding: 1.25rem; }
 }
+
+.task-card__desc { font-size: 0.82rem; color: #64748b; margin-bottom: 0.4rem; line-height: 1.4; }
+.task-inline-error { font-size: 0.78rem; color: #ef4444; margin-top: 0.35rem; }

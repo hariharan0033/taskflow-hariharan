@@ -38,8 +38,8 @@ export default function ProjectsPage() {
         {!loading && !error && projects.length === 0 && (
           <div className="state-box">
             <div className="state-icon">📋</div>
-            <h3>No projects yet</h3>
-            <p>Create your first project to get started.</p>
+            <h3>No projects yet. Create your first project 🚀</h3>
+            <p>Click <strong>+ New Project</strong> to get started.</p>
           </div>
         )}
 
