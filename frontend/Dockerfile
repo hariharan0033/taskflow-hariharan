@@ -1,5 +1,5 @@
 # ─── Stage 1: Builder ─────────────────────────────────────────
-FROM node:18 AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
@@ -9,14 +9,14 @@ ENV VITE_API_URL=$VITE_API_URL
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source and build
 COPY . .
 RUN npm run build
 
 # ─── Stage 2: Serve ───────────────────────────────────────────
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
