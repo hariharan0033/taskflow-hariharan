@@ -8,9 +8,11 @@ import { useTaskStore } from '../store/taskStore';
 import { getProject } from '../api/projects';
 import type { Project, TaskStatus } from '../types';
 
+const TASK_PAGE_SIZE = 10;
+
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { tasks, loading, error, fetchTasks } = useTaskStore();
+  const { tasks, pagination, loading, error, fetchTasks } = useTaskStore();
 
   const [project, setProject] = useState<Project | null>(null);
   const [projectLoading, setProjectLoading] = useState(true);
@@ -19,6 +21,7 @@ export default function ProjectDetailPage() {
 
   const [filterStatus, setFilterStatus] = useState<TaskStatus | ''>('');
   const [filterAssignee, setFilterAssignee] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (!id) return;
@@ -34,8 +37,17 @@ export default function ProjectDetailPage() {
     fetchTasks(id, {
       status: filterStatus || undefined,
       assignee: filterAssignee || undefined,
+      page,
+      limit: TASK_PAGE_SIZE,
     });
-  }, [id, filterStatus, filterAssignee]);
+  }, [id, filterStatus, filterAssignee, page]);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = (newStatus: TaskStatus | '', newAssignee: string) => {
+    setPage(1);
+    setFilterStatus(newStatus);
+    setFilterAssignee(newAssignee);
+  };
 
   // Collect unique assignees from tasks for the filter dropdown
   const assigneeOptions = Array.from(
@@ -79,7 +91,7 @@ export default function ProjectDetailPage() {
 
         <div className="page-header">
           <h1 style={{ fontSize: '1.1rem', color: '#64748b' }}>
-            Tasks {!loading && `(${tasks.length})`}
+            Tasks {pagination && <span className="count-badge">({pagination.total})</span>}
           </h1>
           <button className="btn btn--primary" onClick={() => setShowModal(true)}>
             + New Task
@@ -90,7 +102,7 @@ export default function ProjectDetailPage() {
         <div className="filters">
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as TaskStatus | '')}
+            onChange={(e) => handleFilterChange(e.target.value as TaskStatus | '', filterAssignee)}
           >
             <option value="">All Statuses</option>
             <option value="todo">Todo</option>
@@ -101,7 +113,7 @@ export default function ProjectDetailPage() {
           {assigneeOptions.length > 0 && (
             <select
               value={filterAssignee}
-              onChange={(e) => setFilterAssignee(e.target.value)}
+              onChange={(e) => handleFilterChange(filterStatus, e.target.value)}
             >
               <option value="">All Assignees</option>
               {assigneeOptions.map((a) => (
@@ -113,7 +125,7 @@ export default function ProjectDetailPage() {
           {(filterStatus || filterAssignee) && (
             <button
               className="btn btn--ghost btn--sm"
-              onClick={() => { setFilterStatus(''); setFilterAssignee(''); }}
+              onClick={() => handleFilterChange('', '')}
             >
               Clear Filters
             </button>
@@ -139,14 +151,38 @@ export default function ProjectDetailPage() {
         )}
 
         {!loading && !error && tasks.length > 0 && (
-          <div className="task-list">
-            {tasks.map((t) => <TaskCard key={t.id} task={t} />)}
-          </div>
+          <>
+            <div className="task-list">
+              {tasks.map((t) => <TaskCard key={t.id} task={t} />)}
+            </div>
+
+            {pagination && pagination.totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="btn btn--ghost btn--sm"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  ← Prev
+                </button>
+                <span className="pagination-info">
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
+                <button
+                  className="btn btn--ghost btn--sm"
+                  disabled={page === pagination.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
       {showModal && id && (
-        <CreateTaskModal projectId={id} onClose={() => setShowModal(false)} />
+        <CreateTaskModal projectId={id} onClose={() => { setShowModal(false); setPage(1); fetchTasks(id, { page: 1, limit: TASK_PAGE_SIZE }); }} />
       )}
     </>
   );

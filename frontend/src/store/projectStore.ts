@@ -1,25 +1,27 @@
 import { create } from 'zustand';
-import type { Project } from '../types';
+import type { Project, PaginationMeta, PaginationParams } from '../types';
 import * as projectsApi from '../api/projects';
 
 interface ProjectState {
   projects: Project[];
+  pagination: PaginationMeta | null;
   loading: boolean;
   error: string | null;
-  fetchProjects: () => Promise<void>;
+  fetchProjects: (params?: PaginationParams) => Promise<void>;
   addProject: (data: { name: string; description?: string }) => Promise<Project>;
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
   projects: [],
+  pagination: null,
   loading: false,
   error: null,
 
-  fetchProjects: async () => {
+  fetchProjects: async (params) => {
     set({ loading: true, error: null });
     try {
-      const projects = await projectsApi.getProjects();
-      set({ projects, loading: false });
+      const { data, pagination } = await projectsApi.getProjects(params);
+      set({ projects: data, pagination, loading: false });
     } catch {
       set({ error: 'Failed to load projects', loading: false });
     }

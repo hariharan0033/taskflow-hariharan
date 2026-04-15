@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { Task } from '../types';
+import type { Task, PaginationMeta } from '../types';
 import type { TaskFilters, TaskPayload } from '../api/tasks';
 import * as tasksApi from '../api/tasks';
 
 interface TaskState {
   tasks: Task[];
+  pagination: PaginationMeta | null;
   loading: boolean;
   error: string | null;
   fetchTasks: (projectId: string, filters?: TaskFilters) => Promise<void>;
@@ -16,14 +17,15 @@ interface TaskState {
 
 export const useTaskStore = create<TaskState>((set, get) => ({
   tasks: [],
+  pagination: null,
   loading: false,
   error: null,
 
   fetchTasks: async (projectId, filters) => {
     set({ loading: true, error: null });
     try {
-      const tasks = await tasksApi.getTasks(projectId, filters);
-      set({ tasks, loading: false });
+      const { data, pagination } = await tasksApi.getTasks(projectId, filters);
+      set({ tasks: data, pagination, loading: false });
     } catch {
       set({ error: 'Failed to load tasks', loading: false });
     }

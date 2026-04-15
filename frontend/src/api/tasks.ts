@@ -1,7 +1,7 @@
 import api from './axios';
-import type { Task, TaskStatus, TaskPriority } from '../types';
+import type { Task, TaskStatus, TaskPriority, PaginatedResponse, PaginationParams } from '../types';
 
-export interface TaskFilters {
+export interface TaskFilters extends PaginationParams {
   status?: TaskStatus;
   assignee?: string;
 }
@@ -16,7 +16,7 @@ export interface TaskPayload {
 }
 
 export const getTasks = (projectId: string, filters?: TaskFilters) =>
-  api.get<Task[]>(`/projects/${projectId}/tasks`, { params: filters }).then((r) => r.data);
+  api.get<PaginatedResponse<Task>>(`/projects/${projectId}/tasks`, { params: filters }).then((r) => r.data);
 
 export const createTask = (projectId: string, data: TaskPayload) =>
   api.post<Task>(`/projects/${projectId}/tasks`, data).then((r) => r.data);

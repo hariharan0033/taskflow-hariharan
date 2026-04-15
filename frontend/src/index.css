@@ -260,3 +260,16 @@ button { cursor: pointer; font-family: inherit; }
 
 .task-card__desc { font-size: 0.82rem; color: #64748b; margin-bottom: 0.4rem; line-height: 1.4; }
 .task-inline-error { font-size: 0.78rem; color: #ef4444; margin-top: 0.35rem; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+.pagination-info { font-size: 0.875rem; color: #64748b; }
+.count-badge { font-size: 0.85rem; color: #64748b; font-weight: normal; }

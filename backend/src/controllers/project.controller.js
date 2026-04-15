@@ -1,20 +1,30 @@
 const prisma = require('../utils/prisma');
+const { parsePagination, paginationMeta } = require('../utils/pagination');
 
 async function getProjects(req, res) {
   const userId = req.user.id;
+  const { page, limit, skip, error } = parsePagination(req.query);
+  if (error) return res.status(400).json({ error: 'validation failed', fields: { pagination: error } });
 
-  const projects = await prisma.project.findMany({
-    where: {
-      OR: [
-        { owner_id: userId },
-        { tasks: { some: { assignee_id: userId } } },
-      ],
-    },
-    include: { owner: { select: { id: true, name: true, email: true } } },
-    orderBy: { created_at: 'desc' },
-  });
+  const where = {
+    OR: [
+      { owner_id: userId },
+      { tasks: { some: { assignee_id: userId } } },
+    ],
+  };
 
-  return res.json(projects);
+  const [total, projects] = await prisma.$transaction([
+    prisma.project.count({ where }),
+    prisma.project.findMany({
+      where,
+      include: { owner: { select: { id: true, name: true, email: true } } },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  return res.json({ data: projects, pagination: paginationMeta(total, page, limit) });
 }
 
 async function createProject(req, res) {

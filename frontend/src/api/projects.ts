@@ -1,8 +1,8 @@
 import api from './axios';
-import type { Project } from '../types';
+import type { Project, PaginatedResponse, PaginationParams } from '../types';
 
-export const getProjects = () =>
-  api.get<Project[]>('/projects').then((r) => r.data);
+export const getProjects = (params?: PaginationParams) =>
+  api.get<PaginatedResponse<Project>>('/projects', { params }).then((r) => r.data);
 
 export const createProject = (data: { name: string; description?: string }) =>
   api.post<Project>('/projects', data).then((r) => r.data);
