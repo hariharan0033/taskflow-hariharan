@@ -7,7 +7,8 @@ import CreateTaskModal from '../components/CreateTaskModal';
 import Spinner from '../components/Spinner';
 import { useTaskStore } from '../store/taskStore';
 import { getProject } from '../api/projects';
-import type { Project, TaskStatus } from '../types';
+import { getTasks } from '../api/tasks';
+import type { Project, TaskStatus, User } from '../types';
 
 const TASK_PAGE_SIZE = 10;
 const BOARD_FETCH_LIMIT = 100; // fetch all tasks for board view
@@ -26,6 +27,17 @@ export default function ProjectDetailPage() {
   const [filterStatus, setFilterStatus] = useState<TaskStatus | ''>('');
   const [filterAssignee, setFilterAssignee] = useState('');
   const [page, setPage] = useState(1);
+  const [allAssignees, setAllAssignees] = useState<Pick<User, 'id' | 'name' | 'email'>[]>([]);
+
+  // Fetch all assignees once (not paginated) so the filter is always populated
+  useEffect(() => {
+    if (!id) return;
+    getTasks(id, { limit: 500, page: 1 }).then((res) => {
+      const map = new Map<string, Pick<User, 'id' | 'name' | 'email'>>();
+      res.data.forEach((t) => { if (t.assignee) map.set(t.assignee.id, t.assignee); });
+      setAllAssignees(Array.from(map.values()));
+    }).catch(() => {});
+  }, [id, tasks]); // re-run when tasks change (e.g. after assigning a task)
 
   useEffect(() => {
     if (!id) return;
@@ -57,15 +69,6 @@ export default function ProjectDetailPage() {
     setFilterStatus(newStatus);
     setFilterAssignee(newAssignee);
   };
-
-  // Collect unique assignees from tasks for the filter dropdown
-  const assigneeOptions = Array.from(
-    new Map(
-      tasks
-        .filter((t) => t.assignee)
-        .map((t) => [t.assignee!.id, t.assignee!])
-    ).values()
-  );
 
   if (projectLoading) return <><Navbar /><Spinner /></>;
 
@@ -137,17 +140,15 @@ export default function ProjectDetailPage() {
             <option value="done">Done</option>
           </select>
 
-          {assigneeOptions.length > 0 && (
-            <select
-              value={filterAssignee}
-              onChange={(e) => handleFilterChange(filterStatus, e.target.value)}
-            >
-              <option value="">All Assignees</option>
-              {assigneeOptions.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          )}
+          <select
+            value={filterAssignee}
+            onChange={(e) => handleFilterChange(filterStatus, e.target.value)}
+          >
+            <option value="">All Assignees</option>
+            {allAssignees.map((a) => (
+              <option key={a.id} value={a.id}>{a.name}</option>
+            ))}
+          </select>
 
           {(filterStatus || filterAssignee) && (
             <button
