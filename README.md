@@ -43,10 +43,10 @@ Zustand is the right size for this project. Redux would be overengineering — Z
 Rather than pulling in shadcn/ui, Chakra, or MUI, the frontend uses hand-written CSS. This was a deliberate tradeoff: it reduces bundle size, avoids version-pinning complexity, and demonstrates understanding of layout and responsive design fundamentals. The decision is a tradeoff — a component library would accelerate future feature work.
 
 ### Tradeoffs Made
-- **No pagination** — kept queries simple; easy to add with Prisma's `skip`/`take`
 - **No file uploads / avatars** — out of scope
 - **`prisma migrate deploy`** in Docker — production-safe command; `migrate dev` is for local schema iteration only
-- **Structured JSON logging** — logs emit newline-delimited JSON (`{"level":"info","method":"GET",...}`) instead of using a full logger like winston/pino, which would be the next step
+- **Structured JSON logging** — logs emit newline-delimited JSON (`{"level":"info","method":"GET",...}`) instead of using a dedicated logger like pino/winston, which would be the next step
+- **Custom CSS over component library** — reduces bundle size and avoids version-pinning complexity; tradeoff is more CSS to maintain
 
 ---
 
@@ -66,7 +66,8 @@ cd taskflow-hariharan
 cp .env.example .env
 
 # 3. Start everything
-docker compose up --build
+docker-compose up --build
+# (If your Docker CLI is v20.10+ you can also use: docker compose up --build)
 ```
 
 That's it. Docker will:
@@ -144,7 +145,7 @@ npx prisma db seed
 ### Projects
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/projects` | ✅ | List projects (owned or assigned) |
+| `GET` | `/projects` | ✅ | List projects (owned or assigned), paginated with `?page=&limit=` |
 | `POST` | `/projects` | ✅ | Create a project |
 | `GET` | `/projects/:id` | ✅ | Get project + tasks |
 | `PATCH` | `/projects/:id` | ✅ | Update project (owner only) |
@@ -154,10 +155,10 @@ npx prisma db seed
 ### Tasks
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/projects/:id/tasks` | ✅ | List tasks (filter by `?status=` `?assignee=`) |
+| `GET` | `/projects/:id/tasks` | ✅ | List tasks — filter by `?status=` `?assignee=`, paginated with `?page=&limit=` |
 | `POST` | `/projects/:id/tasks` | ✅ | Create a task |
 | `PATCH` | `/tasks/:id` | ✅ | Update task fields |
-| `DELETE` | `/tasks/:id` | ✅ | Delete task (project owner only) |
+| `DELETE` | `/tasks/:id` | ✅ | Delete task (project owner or task creator only) |
 
 ### System
 | Method | Endpoint | Description |
@@ -205,11 +206,20 @@ taskflow-hariharan/
 
 ---
 
+## Bonus Features Implemented
+
+- **Pagination** — `?page=&limit=` on `GET /projects` and `GET /projects/:id/tasks`
+- **GET /projects/:id/stats** — task counts broken down by status and by assignee
+- **Drag-and-drop Kanban board** — powered by `@dnd-kit`; drag tasks between columns to change status (optimistic update, reverts on error) or reorder within a column
+- **Dark mode** — toggle in the navbar, persists via `localStorage` with no flash on load
+
+---
+
 ## What I'd Do With More Time
 
-- **Pagination** — `skip`/`take` on task and project queries for large datasets
-- **Drag & drop** — reorder tasks by priority using `@dnd-kit`
-- **Real-time updates** — WebSocket or Server-Sent Events so task changes appear live for all team members
+- **Integration tests** — Jest + Supertest for auth and task endpoints (register, create task, delete as non-owner)
+- **Real-time updates** — WebSocket or SSE so task changes appear live for all collaborators
 - **Role-based access** — project member roles (viewer / editor / admin)
-- **Due date alerts** — highlight overdue tasks and send email reminders
-- **Test suite** — Jest + Supertest for backend, React Testing Library for frontend
+- **DB indexes** — explicit indexes on `Task.project_id` and `Task.assignee_id` for query performance at scale
+- **Refresh tokens** — current JWT is 24h with no rotation; a proper refresh token flow would be more production-safe
+- **Due date alerts** — highlight overdue tasks visually and optionally send email reminders
