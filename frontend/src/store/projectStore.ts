@@ -9,6 +9,8 @@ interface ProjectState {
   error: string | null;
   fetchProjects: (params?: PaginationParams) => Promise<void>;
   addProject: (data: { name: string; description?: string }) => Promise<Project>;
+  editProject: (id: string, data: { name?: string; description?: string }) => Promise<void>;
+  removeProject: (id: string) => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
@@ -31,5 +33,15 @@ export const useProjectStore = create<ProjectState>((set) => ({
     const project = await projectsApi.createProject(data);
     set((s) => ({ projects: [project, ...s.projects] }));
     return project;
+  },
+
+  editProject: async (id, data) => {
+    const updated = await projectsApi.updateProject(id, data);
+    set((s) => ({ projects: s.projects.map((p) => (p.id === id ? updated : p)) }));
+  },
+
+  removeProject: async (id) => {
+    await projectsApi.deleteProject(id);
+    set((s) => ({ projects: s.projects.filter((p) => p.id !== id) }));
   },
 }));
