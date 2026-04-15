@@ -24,22 +24,28 @@ export default function TaskCard({ task }: Props) {
   const removeTask = useTaskStore((s) => s.removeTask);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [statusError, setStatusError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const handleStatusClick = async () => {
+    setStatusError('');
     const next = NEXT_STATUS[task.status];
     try {
       await updateTaskOptimistic(task.id, { status: next });
     } catch {
-      // revert already handled in store
+      setStatusError('Failed to update status — reverted.');
+      setTimeout(() => setStatusError(''), 3000);
     }
   };
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${task.title}"?`)) return;
     setDeleting(true);
+    setDeleteError('');
     try {
       await removeTask(task.id);
     } catch {
+      setDeleteError('Failed to delete task.');
       setDeleting(false);
     }
   };
@@ -53,6 +59,9 @@ export default function TaskCard({ task }: Props) {
       <div className="task-card">
         <div className="task-card__body">
           <div className="task-card__title">{task.title}</div>
+          {task.description && (
+            <div className="task-card__desc">{task.description}</div>
+          )}
           <div className="task-card__meta">
             <button
               className={`badge badge--${task.status}`}
@@ -70,6 +79,8 @@ export default function TaskCard({ task }: Props) {
               <span className="task-due">📅 {formattedDue}</span>
             )}
           </div>
+          {statusError && <div className="task-inline-error">{statusError}</div>}
+          {deleteError && <div className="task-inline-error">{deleteError}</div>}
         </div>
         <div className="task-card__actions">
           <button className="btn btn--ghost btn--sm" onClick={() => setEditing(true)}>Edit</button>
@@ -78,7 +89,7 @@ export default function TaskCard({ task }: Props) {
             onClick={handleDelete}
             disabled={deleting}
           >
-            {deleting ? '…' : 'Del'}
+            {deleting ? '…' : 'Delete'}
           </button>
         </div>
       </div>

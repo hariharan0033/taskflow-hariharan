@@ -30,8 +30,8 @@ services:
       PORT: 3000
     ports:
       - "3000:3000"
-    # Push schema to DB then start the server
-    command: sh -c "npx prisma db push --accept-data-loss && node src/server.js"
+    # Run migrations automatically then start the server
+    command: sh -c "npx prisma migrate deploy && npm start"
 
   # ─── Frontend ─────────────────────────────────────────────────
   frontend:

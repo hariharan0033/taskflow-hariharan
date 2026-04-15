@@ -133,8 +133,8 @@ export default function ProjectDetailPage() {
         {!loading && !error && tasks.length === 0 && (
           <div className="state-box">
             <div className="state-icon">✅</div>
-            <h3>No tasks yet</h3>
-            <p>Add your first task to this project.</p>
+            <h3>No tasks in this project</h3>
+            <p>Add your first task by clicking <strong>+ New Task</strong>.</p>
           </div>
         )}
 
