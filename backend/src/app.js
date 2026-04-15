@@ -10,11 +10,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Request logger
+// Structured JSON request logger
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    console.log(`${req.method} ${req.originalUrl} → ${res.statusCode} (${Date.now() - start}ms)`);
+    console.log(JSON.stringify({
+      level: res.statusCode >= 500 ? 'error' : 'info',
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      ms: Date.now() - start,
+    }));
   });
   next();
 });

@@ -27,20 +27,26 @@ TaskFlow lets teams create projects, manage tasks, assign work, and track progre
 
 ## Architecture Decisions
 
+### Language: Node.js over Go
+The assignment suggests Go as the preferred backend language. Node.js was chosen instead because it is the language I can write most clearly and confidently within the time constraint — and the assignment explicitly permits this with the instruction to "note your choice in the README." The architecture (REST controllers, Prisma ORM, JWT middleware) maps 1:1 to what a Go implementation would look like using chi/gin + sqlc/pgx.
+
 ### Why Node.js + Express?
 Express is minimal, unopinionated, and fast to set up — ideal for an interview-sized project where clarity matters more than convention. It keeps controllers readable and avoids magic.
 
 ### Why Prisma?
-Prisma gives type-safe database access with an excellent DX. The schema-first approach means the data model is the single source of truth, and auto-generated migrations keep the DB in sync reliably.
+Prisma gives type-safe database access with an excellent DX. The schema-first approach means the data model is the single source of truth, and migrations (`prisma migrate deploy`) run automatically on container start. Both `up` (migration.sql) and `down` (down.sql) migration files are included in every migration folder.
 
 ### Why Zustand?
 Zustand is the right size for this project. Redux would be overengineering — Zustand gives global state, actions, and selectors in under 30 lines per store. No boilerplate, no context wiring.
 
+### UI: Custom CSS, no component library
+Rather than pulling in shadcn/ui, Chakra, or MUI, the frontend uses hand-written CSS. This was a deliberate tradeoff: it reduces bundle size, avoids version-pinning complexity, and demonstrates understanding of layout and responsive design fundamentals. The decision is a tradeoff — a component library would accelerate future feature work.
+
 ### Tradeoffs Made
 - **No pagination** — kept queries simple; easy to add with Prisma's `skip`/`take`
 - **No file uploads / avatars** — out of scope
-- **`prisma migrate deploy`** instead of `migrate dev` in Docker — deploy is the production-safe command; dev is for local schema changes only
-- **CSS instead of a UI library** — keeps the bundle lean and shows CSS fundamentals
+- **`prisma migrate deploy`** in Docker — production-safe command; `migrate dev` is for local schema iteration only
+- **Structured JSON logging** — logs emit newline-delimited JSON (`{"level":"info","method":"GET",...}`) instead of using a full logger like winston/pino, which would be the next step
 
 ---
 
@@ -86,6 +92,19 @@ npx prisma migrate deploy
 ```
 
 This applies all pending migrations from `backend/prisma/migrations/` without any manual steps.
+
+Every migration includes both directions:
+
+| File | Purpose |
+|---|---|
+| `migration.sql` | **Up** — creates tables, enums, indexes, foreign keys |
+| `down.sql` | **Down** — drops all constraints, tables, and enums in reverse order |
+
+To roll back manually:
+```bash
+# Connect to the running postgres container and execute down.sql
+docker exec -i taskflow-hariharan-postgres-1 psql -U postgres -d taskflow < backend/prisma/migrations/20240101000000_init/down.sql
+```
 
 To create a new migration during development:
 
