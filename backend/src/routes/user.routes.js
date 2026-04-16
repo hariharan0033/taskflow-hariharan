@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const authenticate = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
 const prisma = require('../utils/prisma');
 
 const router = Router();

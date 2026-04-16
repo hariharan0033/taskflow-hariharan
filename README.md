@@ -116,65 +116,177 @@ npx prisma migrate dev --name your_migration_name
 
 ---
 
-## Seed Data
+## Test Credentials
 
-To load test data (2 users, 3 projects, 33 tasks):
-
-```bash
-cd backend
-npx prisma db seed
-```
-
-### Test Credentials
+The database is pre-seeded on first start. Log in immediately with:
 
 | Name | Email | Password |
 |------|-------|----------|
 | Alice (Test User) | `test@example.com` | `password123` |
 | Bob Smith | `bob@example.com` | `password123` |
 
-Both users share projects and have tasks assigned to each other so filters and assignee dropdowns are populated out of the box.
+Both users share projects with tasks cross-assigned, so filters and assignee dropdowns are populated out of the box.
+
+### Running the Seed Manually
+
+Seed runs automatically inside Docker on first start. To re-run it:
+
+```bash
+# Via Docker (no local Node.js required)
+docker compose exec backend npx prisma db seed
+
+# Or locally
+cd backend && npx prisma db seed
+```
 
 ---
 
 ## API Reference
 
+All endpoints return `Content-Type: application/json`. All routes except `/auth/*` and `/health` require `Authorization: Bearer <token>`.
+
 ### Authentication
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/auth/register` | Register a new user |
-| `POST` | `/auth/login` | Login and receive JWT |
 
-### Projects
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/projects` | ✅ | List projects (owned or assigned), paginated with `?page=&limit=` |
-| `POST` | `/projects` | ✅ | Create a project |
-| `GET` | `/projects/:id` | ✅ | Get project + tasks |
-| `PATCH` | `/projects/:id` | ✅ | Update project (owner only) |
-| `DELETE` | `/projects/:id` | ✅ | Delete project (owner only) |
-| `GET` | `/projects/:id/stats` | ✅ | Task counts by status and assignee |
-
-### Tasks
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/projects/:id/tasks` | ✅ | List tasks — filter by `?status=` `?assignee=`, paginated with `?page=&limit=` |
-| `POST` | `/projects/:id/tasks` | ✅ | Create a task |
-| `PATCH` | `/tasks/:id` | ✅ | Update task fields |
-| `DELETE` | `/tasks/:id` | ✅ | Delete task (project owner or task creator only) |
-
-### System
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/health` | — | Health check |
-| `GET` | `/users` | ✅ | List all users (for assignee dropdowns) |
-
-### Error Format
-
+#### `POST /auth/register`
 ```json
-{ "error": "validation failed", "fields": { "email": "Valid email is required" } }
+// Request
+{ "name": "Jane Doe", "email": "jane@example.com", "password": "secret123" }
+
+// Response 201
+{ "token": "<jwt>", "user": { "id": "uuid", "name": "Jane Doe", "email": "jane@example.com" } }
 ```
 
-HTTP status codes: `400` validation · `401` unauthenticated · `403` forbidden · `404` not found
+#### `POST /auth/login`
+```json
+// Request
+{ "email": "jane@example.com", "password": "secret123" }
+
+// Response 200
+{ "token": "<jwt>", "user": { "id": "uuid", "name": "Jane Doe", "email": "jane@example.com" } }
+```
+
+---
+
+### Projects
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/projects` | List projects you own or have tasks in — `?page=&limit=` |
+| `POST` | `/projects` | Create a project |
+| `GET` | `/projects/:id` | Get project details + all its tasks |
+| `PATCH` | `/projects/:id` | Update name/description (owner only) |
+| `DELETE` | `/projects/:id` | Delete project + all tasks (owner only) — 204 |
+| `GET` | `/projects/:id/stats` | Task counts by status and by assignee |
+
+#### `GET /projects`
+```json
+// Response 200
+{
+  "projects": [
+    { "id": "uuid", "name": "Website Redesign", "description": "Q2 project", "owner_id": "uuid", "created_at": "2026-04-01T10:00:00Z" }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 1, "pages": 1 }
+}
+```
+
+#### `POST /projects`
+```json
+// Request
+{ "name": "New Project", "description": "Optional description" }
+
+// Response 201
+{ "id": "uuid", "name": "New Project", "description": "Optional description", "owner_id": "uuid", "created_at": "2026-04-09T10:00:00Z" }
+```
+
+#### `GET /projects/:id`
+```json
+// Response 200
+{
+  "id": "uuid", "name": "Website Redesign", "description": "Q2 project", "owner_id": "uuid",
+  "tasks": [
+    { "id": "uuid", "title": "Design homepage", "status": "in_progress", "priority": "high",
+      "assignee_id": "uuid", "due_date": "2026-04-15", "created_at": "...", "updated_at": "..." }
+  ]
+}
+```
+
+#### `GET /projects/:id/stats`
+```json
+// Response 200
+{
+  "by_status": { "todo": 4, "in_progress": 3, "done": 5 },
+  "by_assignee": { "uuid-alice": 6, "uuid-bob": 6 }
+}
+```
+
+---
+
+### Tasks
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/projects/:id/tasks` | List tasks — `?status=todo\|in_progress\|done` `?assignee=<uuid>` `?page=&limit=` |
+| `POST` | `/projects/:id/tasks` | Create a task |
+| `PATCH` | `/tasks/:id` | Update task fields |
+| `DELETE` | `/tasks/:id` | Delete task (project owner or task creator) — 204 |
+
+#### `POST /projects/:id/tasks`
+```json
+// Request
+{
+  "title": "Design homepage",
+  "description": "Include hero and nav",
+  "priority": "high",
+  "status": "todo",
+  "assignee_id": "uuid",
+  "due_date": "2026-04-15"
+}
+
+// Response 201 — returns the created task object
+{ "id": "uuid", "title": "Design homepage", "status": "todo", "priority": "high", ... }
+```
+
+#### `PATCH /tasks/:id`
+```json
+// Request — all fields optional
+{ "status": "done", "priority": "low", "assignee_id": "uuid", "due_date": "2026-04-20" }
+
+// Response 200 — returns updated task object
+```
+
+---
+
+### Users
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/users` | List all users (id, name, email) — used for assignee dropdowns |
+
+---
+
+### System
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Health check — `{ "status": "ok" }` |
+
+---
+
+### Error Responses
+
+```json
+// 400 Validation error
+{ "error": "validation failed", "fields": { "email": "Valid email is required" } }
+
+// 401 Unauthenticated
+{ "error": "unauthorized" }
+
+// 403 Forbidden (authenticated but not allowed)
+{ "error": "forbidden" }
+
+// 404 Not found
+{ "error": "not found" }
+```
 
 ---
 
