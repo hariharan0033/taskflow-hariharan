@@ -118,7 +118,7 @@ npx prisma migrate dev --name your_migration_name
 
 ## Seed Data
 
-To load test data (a user + project + 3 tasks):
+To load test data (2 users, 3 projects, 33 tasks):
 
 ```bash
 cd backend
@@ -127,10 +127,12 @@ npx prisma db seed
 
 ### Test Credentials
 
-| Field | Value |
-|---|---|
-| Email | `test@example.com` |
-| Password | `password123` |
+| Name | Email | Password |
+|------|-------|----------|
+| Alice (Test User) | `test@example.com` | `password123` |
+| Bob Smith | `bob@example.com` | `password123` |
+
+Both users share projects and have tasks assigned to each other so filters and assignee dropdowns are populated out of the box.
 
 ---
 
