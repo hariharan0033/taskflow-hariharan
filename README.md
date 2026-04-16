@@ -163,9 +163,10 @@ Both users share projects and have tasks assigned to each other so filters and a
 | `DELETE` | `/tasks/:id` | ✅ | Delete task (project owner or task creator only) |
 
 ### System
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Health check |
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/health` | — | Health check |
+| `GET` | `/users` | ✅ | List all users (for assignee dropdowns) |
 
 ### Error Format
 

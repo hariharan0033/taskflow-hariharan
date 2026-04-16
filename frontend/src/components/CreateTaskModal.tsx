@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { useTaskStore } from '../store/taskStore';
+import { getUsers } from '../api/users';
 import type { TaskPriority, TaskStatus } from '../types';
+import type { UserSummary } from '../api/users';
 
 interface Props {
   projectId: string;
@@ -15,8 +17,14 @@ export default function CreateTaskModal({ projectId, onClose }: Props) {
   const [status, setStatus] = useState<TaskStatus>('todo');
   const [priority, setPriority] = useState<TaskPriority>('medium');
   const [dueDate, setDueDate] = useState('');
+  const [assigneeId, setAssigneeId] = useState('');
+  const [users, setUsers] = useState<UserSummary[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getUsers().then(setUsers).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +38,7 @@ export default function CreateTaskModal({ projectId, onClose }: Props) {
         description: description.trim() || undefined,
         status,
         priority,
+        assignee_id: assigneeId || undefined,
         due_date: dueDate || undefined,
       });
       onClose();
@@ -77,6 +86,15 @@ export default function CreateTaskModal({ projectId, onClose }: Props) {
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label htmlFor="task-assignee">Assignee</label>
+          <select id="task-assignee" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
+            <option value="">Unassigned</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
           </select>
         </div>
         <div className="form-group">

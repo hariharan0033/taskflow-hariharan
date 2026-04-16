@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth.routes');
 const projectRoutes = require('./routes/project.routes');
 const taskRoutes = require('./routes/task.routes');
+const userRoutes = require('./routes/user.routes');
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.get('/health', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/projects', projectRoutes);
 app.use('/tasks', taskRoutes);
+app.use('/users', userRoutes);
 
 // 404 handler
 app.use((req, res) => {
